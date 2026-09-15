@@ -1,0 +1,121 @@
+[
+  {
+    "description": "a rule nesting groups beyond the bounded depth (5) MUST be refused at authoring time, naming the bound",
+    "construct": "nested_composition",
+    "clause": {"op": "and", "clauses": [
+      {"op": "or", "clauses": [
+        {"op": "and", "clauses": [
+          {"op": "or", "clauses": [
+            {"op": "and", "clauses": [
+              {"op": "eq", "attribute": "x", "type": "string", "value": "y"}
+            ]}
+          ]}
+        ]}
+      ]}
+    ]},
+    "depth": 6,
+    "expected_error": "nesting_depth_exceeded",
+    "expected_error_names_bound": 5
+  },
+  {
+    "description": "a subject key listed as an individual target for more than one variation MUST be refused",
+    "construct": "individual_targets",
+    "individual_targets": [
+      {"variation_key": "on", "subject_keys": ["dup-1"]},
+      {"variation_key": "off", "subject_keys": ["dup-1"]}
+    ],
+    "expected_error": "subject_listed_for_multiple_variations",
+    "expected_error_names_subject": "dup-1"
+  },
+  {
+    "description": "a direct prerequisite cycle (A requires B, B requires A) MUST be refused, naming the cycle",
+    "construct": "prerequisites",
+    "prerequisites": {
+      "flag-a": [{"flag_key": "flag-b", "required_variation_key": "on"}],
+      "flag-b": [{"flag_key": "flag-a", "required_variation_key": "on"}]
+    },
+    "expected_error": "prerequisite_cycle",
+    "expected_error_names_cycle": ["flag-a", "flag-b", "flag-a"]
+  },
+  {
+    "description": "an indirect prerequisite cycle (A requires B, B requires C, C requires A) MUST be refused, naming the full cycle",
+    "construct": "prerequisites",
+    "prerequisites": {
+      "flag-a": [{"flag_key": "flag-b", "required_variation_key": "on"}],
+      "flag-b": [{"flag_key": "flag-c", "required_variation_key": "on"}],
+      "flag-c": [{"flag_key": "flag-a", "required_variation_key": "on"}]
+    },
+    "expected_error": "prerequisite_cycle",
+    "expected_error_names_cycle": ["flag-a", "flag-b", "flag-c", "flag-a"]
+  },
+  {
+    "description": "a prerequisite chain exceeding the bounded length (4) MUST be refused",
+    "construct": "prerequisites",
+    "prerequisites": {
+      "flag-1": [{"flag_key": "flag-2", "required_variation_key": "on"}],
+      "flag-2": [{"flag_key": "flag-3", "required_variation_key": "on"}],
+      "flag-3": [{"flag_key": "flag-4", "required_variation_key": "on"}],
+      "flag-4": [{"flag_key": "flag-5", "required_variation_key": "on"}],
+      "flag-5": [{"flag_key": "flag-6", "required_variation_key": "on"}]
+    },
+    "chain_length": 5,
+    "expected_error": "prerequisite_chain_too_long",
+    "expected_error_names_bound": 4
+  },
+  {
+    "description": "archiving a flag other flags depend on as a prerequisite MUST be refused, naming the dependents",
+    "construct": "prerequisites",
+    "action": "archive",
+    "target_flag_key": "checkout-kill-switch",
+    "dependent_flag_keys": ["checkout-v2", "checkout-v3"],
+    "expected_error": "flag_has_dependents",
+    "expected_error_names_dependents": ["checkout-v2", "checkout-v3"]
+  },
+  {
+    "description": "removing a segment referenced by a rule MUST be refused, naming the referencing flags",
+    "construct": "segment_removal",
+    "action": "remove_segment",
+    "target_segment_key": "enterprise-accounts",
+    "referencing_flag_keys": ["enterprise-only-feature", "high-value-non-trial"],
+    "expected_error": "segment_has_references",
+    "expected_error_names_referencing_flags": ["enterprise-only-feature", "high-value-non-trial"]
+  },
+  {
+    "description": "a rule referencing a segment from a different project MUST be refused",
+    "construct": "segment_cross_project",
+    "rule_project_id": "proj_a",
+    "segment_project_id": "proj_b",
+    "segment_key": "some-other-projects-segment",
+    "expected_error": "segment_cross_project_reference"
+  },
+  {
+    "description": "a rollout whose bucket-position allocations do not sum to the full 10000-position space MUST be refused",
+    "construct": "rollout",
+    "rollout": [
+      {"variation_key": "on", "bucket_positions": 5000},
+      {"variation_key": "off", "bucket_positions": 4000}
+    ],
+    "sum": 9000,
+    "expected_error": "rollout_allocations_do_not_sum_to_whole"
+  },
+  {
+    "description": "a regex pattern using an excluded construct (backreference) MUST be refused, naming the reason — backreferences are not RE2-safe and are excluded from the bounded subset",
+    "construct": "regex",
+    "pattern": "^(foo)\\1$",
+    "expected_error": "unbounded_regex_pattern",
+    "expected_error_names_construct": "backreference"
+  },
+  {
+    "description": "a regex pattern using an excluded construct (lookahead) MUST be refused",
+    "construct": "regex",
+    "pattern": "^foo(?=bar)",
+    "expected_error": "unbounded_regex_pattern",
+    "expected_error_names_construct": "lookahead"
+  },
+  {
+    "description": "a regex pattern using only the bounded, RE2-safe subset MUST be accepted",
+    "construct": "regex",
+    "pattern": "^SKU-[0-9]{4}(-[A-Z]{2})?$",
+    "expected_error": null
+  }
+]
