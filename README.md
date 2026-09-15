@@ -26,6 +26,24 @@ JSON files, their combined digest manifest, and this document.
   on either side of it). Generated from and verified against
   `apps/api/internal/evaluation/domain/configuration.go`'s `Evaluate()` /
   `Outcome.resolve()`.
+- **`targeting-model-vectors.json`** — every construct `expand-targeting-model`
+  added to the targeting model: typed attributes, the closed nine-operator
+  set, AND/OR/negation composition with bounded nesting, individual
+  targets, prerequisite flags, fractional rollout in bucket positions, and
+  segment-membership clauses (including a segment using the full composed
+  clause model itself). Each vector states its own expected variation and
+  reason. Generated from and verified against
+  `apps/api/internal/evaluation/domain/clause.go`'s `Evaluate()` /
+  `ClauseTree.Match()`.
+- **`targeting-model-authoring-refusals.json`** — the authoring-time
+  refusal cases the vectors above don't cover: nesting-depth exceeded, a
+  duplicate individual-target subject key, direct and indirect
+  prerequisite cycles, a chain longer than the bound, archiving a flag
+  with dependents, removing a referenced segment, a cross-project segment
+  reference, a rollout whose allocations don't sum to the whole, and both
+  excluded and accepted regex patterns. Generated from and verified
+  against `apps/api/internal/environmentflagconfig`'s authoring-time
+  validation.
 - **`manifest.json`** — the SHA-256 digest of each file above, so a drift
   check can compare a small manifest fetch rather than always diffing full
   file content (either works; the manifest is the faster path).
